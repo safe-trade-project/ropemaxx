@@ -35,7 +35,7 @@ export default function TugOfWar() {
 
   const handlePull = useCallback(async () => {
     if (!team || isLocked) return;
-    
+
     // Visual feedback
     setBump(team);
     setTimeout(() => setBump(null), 100);
@@ -46,11 +46,11 @@ export default function TugOfWar() {
     setKeyQueue(prev => [...prev.slice(1), getRandomKey()]);
 
     try {
-        const scoreRef = ref(db, 'currentGame/score');
-        await runTransaction(scoreRef, (currentScore) => {
-            const safeCurrentScore = (currentScore || 0);
-            return team === 'right' ? safeCurrentScore + 1 : safeCurrentScore - 1;
-        });
+      const scoreRef = ref(db, 'currentGame/score');
+      await runTransaction(scoreRef, (currentScore) => {
+        const safeCurrentScore = (currentScore || 0);
+        return team === 'right' ? safeCurrentScore + 1 : safeCurrentScore - 1;
+      });
     } catch (error) {
       console.error("Failed to update score:", error);
     }
@@ -59,16 +59,16 @@ export default function TugOfWar() {
   // Handle wrong key
   const handleWrongKey = useCallback(() => {
     if (!team || isLocked) return;
-    
+
     setWrongKey(true);
     setIsLocked(true);
-    
+
     const newHearts = hearts - 1;
     setHearts(newHearts);
 
     // Visual feedback for wrong key
     setTimeout(() => setWrongKey(false), 200);
-    
+
     // Skip current letter
     setKeyQueue(prev => [...prev.slice(1), getRandomKey()]);
 
@@ -90,12 +90,12 @@ export default function TugOfWar() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!team || isLocked) return;
-      
+
       const pressedKey = e.key.toUpperCase();
-      
+
       if (KEYS.includes(pressedKey as ValidKey)) {
         e.preventDefault();
-        
+
         if (pressedKey === currentKey) {
           handlePull();
         } else {
@@ -109,13 +109,13 @@ export default function TugOfWar() {
   }, [team, currentKey, handlePull, handleWrongKey, isLocked]);
 
   const resetGame = async () => {
-      try {
-        const scoreRef = ref(db, 'currentGame/score');
-        await runTransaction(scoreRef, () => 0);
-      } catch (e) {
-          console.error(e);
-      }
-   };
+    try {
+      const scoreRef = ref(db, 'currentGame/score');
+      await runTransaction(scoreRef, () => 0);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const winner = score <= -100 ? 'Team 1 (Left)' : score >= 100 ? 'Team 2 (Right)' : null;
 
@@ -125,16 +125,16 @@ export default function TugOfWar() {
     <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-8 overflow-hidden">
       {/* Header */}
       <h1 className="text-5xl md:text-6xl font-bold mb-10 tracking-tight text-white/90">
-        Tug of War
+        RopeMaxxing
       </h1>
-      
+
       {winner ? (
         <div className="text-center">
           <div className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-amber-400 to-yellow-300 text-transparent bg-clip-text">
             {winner} Wins!
           </div>
-          <button 
-            onClick={resetGame} 
+          <button
+            onClick={resetGame}
             className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-xl text-lg font-medium transition-all duration-300 backdrop-blur-sm border border-white/10"
           >
             Play Again
@@ -148,33 +148,33 @@ export default function TugOfWar() {
               <span>Team 1</span>
               <span>Team 2</span>
             </div>
-            
+
             <div className="relative w-full h-4 bg-slate-800/50 rounded-full overflow-hidden backdrop-blur-sm">
               {/* Center marker */}
               <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white/20 -translate-x-1/2 z-10" />
-              
+
               {/* Left Fill */}
-              <div 
+              <div
                 className="absolute top-0 bottom-0 bg-gradient-to-r from-rose-500 to-rose-400 transition-all duration-500 ease-out"
-                style={{ 
+                style={{
                   right: '50%',
                   width: score < 0 ? `${Math.abs(score) / 2}%` : '0%',
                 }}
               />
-              
+
               {/* Right Fill */}
-              <div 
+              <div
                 className="absolute top-0 bottom-0 bg-gradient-to-l from-emerald-500 to-emerald-400 transition-all duration-500 ease-out"
-                style={{ 
+                style={{
                   left: '50%',
                   width: score > 0 ? `${score / 2}%` : '0%',
                 }}
               />
-              
+
               {/* Knot */}
-              <div 
+              <div
                 className="absolute top-1/2 w-5 h-5 bg-white rounded-full shadow-lg z-20 transition-all duration-500 ease-out -translate-y-1/2"
-                style={{ 
+                style={{
                   left: `calc(50% + ${score / 2}%)`,
                   transform: 'translate(-50%, -50%)',
                   boxShadow: '0 0 20px rgba(255,255,255,0.4)'
@@ -184,9 +184,9 @@ export default function TugOfWar() {
           </div>
 
           {/* Score */}
-          <div 
+          <div
             className={`text-8xl md:text-9xl font-bold transition-all duration-200 ${bump ? 'scale-110' : 'scale-100'}`}
-            style={{ 
+            style={{
               color: score > 0 ? '#10b981' : score < 0 ? '#f43f5e' : '#94a3b8',
             }}
           >
@@ -196,15 +196,15 @@ export default function TugOfWar() {
           {!team ? (
             /* Team Selection */
             <div className="flex flex-col sm:flex-row gap-6 w-full justify-center mt-4">
-              <button 
+              <button
                 onClick={() => setTeam('left')}
                 className="group px-10 py-6 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 rounded-2xl transition-all duration-300 flex-1 max-w-sm backdrop-blur-sm"
               >
                 <div className="text-2xl font-bold text-rose-400 mb-1">Team 1</div>
                 <div className="text-sm text-slate-400 group-hover:text-slate-300">Pull Left</div>
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => setTeam('right')}
                 className="group px-10 py-6 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 rounded-2xl transition-all duration-300 flex-1 max-w-sm backdrop-blur-sm"
               >
@@ -217,8 +217,8 @@ export default function TugOfWar() {
             <div className="text-center w-full relative">
               <div className="flex justify-center items-center gap-2 mb-6">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className={`text-2xl transition-all duration-300 ${i < hearts ? 'text-rose-500 scale-100 opacity-100' : 'text-slate-800 scale-75 opacity-30'}`}
                   >
                     ❤️
@@ -233,11 +233,11 @@ export default function TugOfWar() {
                   </div>
                 </div>
               )}
-              
+
               <p className="text-sm text-slate-500 mb-8 uppercase tracking-[0.3em]">
                 {team === 'left' ? 'Team 1' : 'Team 2'} pulling
               </p>
-              
+
               {/* Key Sequence Display */}
               <div className="flex items-center justify-center gap-4 md:gap-8 min-h-[160px]">
                 {/* Past Keys */}
@@ -256,7 +256,7 @@ export default function TugOfWar() {
                       ${bump ? 'scale-90 opacity-80' : 'scale-100'}
                       ${isLocked ? 'grayscale opacity-50 ring-slate-800' : (wrongKey ? 'ring-rose-500' : (team === 'left' ? 'ring-rose-500' : 'ring-emerald-500'))}
                     `}
-                    style={{ 
+                    style={{
                       backgroundColor: isLocked ? '#1e293b' : teamColorHex,
                       color: 'white',
                       boxShadow: wrongKey ? '0 0 50px #f43f5e' : (isLocked ? 'none' : `0 20px 60px ${teamColorHex}60`),
@@ -274,8 +274,8 @@ export default function TugOfWar() {
                 {/* Incoming Keys */}
                 <div className="flex gap-4 items-center">
                   {keyQueue.slice(1, 4).map((key, i) => (
-                    <div 
-                      key={`next-${i}`} 
+                    <div
+                      key={`next-${i}`}
                       className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl md:text-3xl font-bold text-white shadow-lg transition-transform"
                       style={{ opacity: 0.8 - (i * 0.2), transform: `scale(${0.95 - (i * 0.05)})` }}
                     >
@@ -284,8 +284,8 @@ export default function TugOfWar() {
                   ))}
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setTeam(null)}
                 className="mt-12 text-slate-600 hover:text-slate-400 text-xs transition-colors duration-300 uppercase tracking-widest"
               >
