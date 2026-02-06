@@ -95,11 +95,11 @@ export default function TugOfWar() {
     setKeyQueue(prev => [...prev.slice(1), getRandomKey()]);
 
     try {
-        const scoreRef = ref(db, 'currentGame/score');
-        await runTransaction(scoreRef, (currentScore) => {
-            const safeCurrentScore = (currentScore || 0);
-            return team === 'right' ? safeCurrentScore + 1 : safeCurrentScore - 1;
-        });
+      const scoreRef = ref(db, 'currentGame/score');
+      await runTransaction(scoreRef, (currentScore) => {
+        const safeCurrentScore = (currentScore || 0);
+        return team === 'right' ? safeCurrentScore + 1 : safeCurrentScore - 1;
+      });
     } catch (error) {
       console.error("Failed to update score:", error);
     }
@@ -107,10 +107,10 @@ export default function TugOfWar() {
 
   const handleWrongKey = useCallback(() => {
     if (!team || isLocked) return;
-    
+
     setWrongKey(true);
     setIsLocked(true);
-    
+
     const newHearts = hearts - 1;
     setHearts(newHearts);
 
@@ -133,12 +133,12 @@ export default function TugOfWar() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!team || isLocked) return;
-      
+
       const pressedKey = e.key.toUpperCase();
-      
+
       if (KEYS.includes(pressedKey as ValidKey)) {
         e.preventDefault();
-        
+
         if (pressedKey === currentKey) {
           handlePull();
         } else {
@@ -196,7 +196,7 @@ export default function TugOfWar() {
       <h1 className="text-5xl md:text-6xl font-bold mb-10 tracking-tight text-white/90">
         Ropemaxxing
       </h1>
-      
+
       {winner ? (
         <div className="text-center">
           <div className="text-6xl md:text-8xl font-bold mb-6 text-yellow-500">
@@ -252,7 +252,7 @@ export default function TugOfWar() {
               
               <div 
                 className="absolute top-1/2 w-5 h-5 bg-white rounded-full shadow-lg z-20 transition-all duration-500 ease-out -translate-y-1/2"
-                style={{ 
+                style={{
                   left: `calc(50% + ${score / 2}%)`,
                   transform: 'translate(-50%, -50%)',
                 }}
@@ -262,7 +262,7 @@ export default function TugOfWar() {
 
           <div 
             className={`text-8xl md:text-9xl font-bold transition-all duration-200 ${bump ? 'scale-110' : 'scale-100'}`}
-            style={{ 
+            style={{
               color: score > 0 ? '#10b981' : score < 0 ? '#f43f5e' : '#94a3b8',
             }}
           >
@@ -291,8 +291,8 @@ export default function TugOfWar() {
             <div className="text-center w-full relative">
               <div className="flex justify-center items-center gap-2 mb-6">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className={`text-2xl transition-all duration-300 ${i < hearts ? 'text-rose-500 scale-100 opacity-100' : 'text-slate-800 scale-75 opacity-30'}`}
                   >
                     ❤️
@@ -307,7 +307,7 @@ export default function TugOfWar() {
                   </div>
                 </div>
               )}
-              
+
               <p className="text-sm text-slate-500 mb-8 uppercase tracking-[0.3em]">
                 {nickname} pulling for {team === 'left' ? 'Team 1' : 'Team 2'}
               </p>
@@ -327,7 +327,7 @@ export default function TugOfWar() {
                       ${bump ? 'scale-90 opacity-80' : 'scale-100'}
                       ${isLocked ? 'grayscale opacity-50 ring-slate-800' : (wrongKey ? 'ring-rose-500' : (team === 'left' ? 'ring-rose-500' : 'ring-emerald-500'))}
                     `}
-                    style={{ 
+                    style={{
                       backgroundColor: isLocked ? '#1e293b' : teamColorHex,
                       color: 'white',
                       transform: wrongKey ? 'translateX(-8px)' : (isLocked ? 'scale(0.95)' : (bump ? 'scale(0.9)' : 'scale(1.1)')),
