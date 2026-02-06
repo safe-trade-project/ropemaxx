@@ -20,3 +20,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0) scale(1.1); }
+  25% { transform: translateX(-6px) scale(1.1); }
+  50% { transform: translateX(6px) scale(1.1); }
+  75% { transform: translateX(-6px) scale(1.1); }
+}
