@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ref, onValue, runTransaction, onDisconnect, remove, set } from 'firebase/database';
+import { ref, onValue, runTransaction, onDisconnect, remove, set, DataSnapshot } from 'firebase/database';
 import { db } from '../firebase';
 
 type Team = 'left' | 'right' | null;
@@ -28,13 +28,13 @@ export default function TugOfWar() {
 
   useEffect(() => {
     const scoreRef = ref(db, 'currentGame/score');
-    const unsubscribeScore = onValue(scoreRef, (snapshot) => {
+    const unsubscribeScore = onValue(scoreRef, (snapshot: DataSnapshot) => {
       const val = snapshot.val();
       setScore(typeof val === 'number' ? val : 0);
     });
 
     const playersRef = ref(db, 'currentGame/players');
-    const unsubscribePlayers = onValue(playersRef, (snapshot) => {
+    const unsubscribePlayers = onValue(playersRef, (snapshot: DataSnapshot) => {
       const currentPlayers = snapshot.val() || {};
       setPlayers(currentPlayers);
 
@@ -96,7 +96,7 @@ export default function TugOfWar() {
 
     try {
       const scoreRef = ref(db, 'currentGame/score');
-      await runTransaction(scoreRef, (currentScore) => {
+      await runTransaction(scoreRef, (currentScore: number | null) => {
         const safeCurrentScore = (currentScore || 0);
         return team === 'right' ? safeCurrentScore + 1 : safeCurrentScore - 1;
       });
