@@ -3,18 +3,24 @@ import { ref, onValue, runTransaction } from 'firebase/database';
 import { db } from '../firebase';
 
 type Team = 'left' | 'right' | null;
-type ValidKey = 'F' | 'G' | 'H' | 'J';
+type ValidKey = 'D' | 'F' | 'K' | 'J';
 
-const KEYS: ValidKey[] = ['F', 'G', 'H', 'J'];
+const KEYS: ValidKey[] = ['D', 'F', 'K', 'J'];
 
 const getRandomKey = (): ValidKey => KEYS[Math.floor(Math.random() * KEYS.length)];
+const generateInitialQueue = () => Array.from({ length: 6 }, getRandomKey);
 
 export default function TugOfWar() {
   const [score, setScore] = useState<number>(0);
   const [team, setTeam] = useState<Team>(null);
   const [bump, setBump] = useState<'left' | 'right' | null>(null);
-  const [currentKey, setCurrentKey] = useState<ValidKey>(getRandomKey());
+  const [keyQueue, setKeyQueue] = useState<ValidKey[]>(generateInitialQueue());
+  const [history, setHistory] = useState<ValidKey[]>([]);
+  const [hearts, setHearts] = useState(3);
   const [wrongKey, setWrongKey] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+
+  const currentKey = keyQueue[0];
 
   // Subscribe to score updates
   useEffect(() => {
@@ -28,60 +34,62 @@ export default function TugOfWar() {
   }, []);
 
   const handlePull = useCallback(async () => {
-    if (!team) return;
+    if (!team || isLocked) return;
     
     // Visual feedback
     setBump(team);
     setTimeout(() => setBump(null), 100);
 
-    // Generate next key
-    setCurrentKey(getRandomKey());
+    // Update queue and history
+    const pulledKey = keyQueue[0];
+    setHistory(prev => [...prev.slice(-2), pulledKey]);
+    setKeyQueue(prev => [...prev.slice(1), getRandomKey()]);
 
     try {
         const scoreRef = ref(db, 'currentGame/score');
         await runTransaction(scoreRef, (currentScore) => {
             const safeCurrentScore = (currentScore || 0);
-            if (team === 'right') {
-                return safeCurrentScore + 1;
-            } else {
-                return safeCurrentScore - 1;
-            }
+            return team === 'right' ? safeCurrentScore + 1 : safeCurrentScore - 1;
         });
     } catch (error) {
       console.error("Failed to update score:", error);
     }
-  }, [team]);
+  }, [team, isLocked, keyQueue]);
 
-  // Handle wrong key - subtract point and randomize key
-  const handleWrongKey = useCallback(async () => {
-    if (!team) return;
+  // Handle wrong key
+  const handleWrongKey = useCallback(() => {
+    if (!team || isLocked) return;
     
     setWrongKey(true);
+    setIsLocked(true);
+    
+    const newHearts = hearts - 1;
+    setHearts(newHearts);
+
+    // Visual feedback for wrong key
     setTimeout(() => setWrongKey(false), 200);
     
-    // Generate new random key
-    setCurrentKey(getRandomKey());
+    // Skip current letter
+    setKeyQueue(prev => [...prev.slice(1), getRandomKey()]);
 
-    try {
-      const scoreRef = ref(db, 'currentGame/score');
-      await runTransaction(scoreRef, (currentScore) => {
-        const safeCurrentScore = (currentScore || 0);
-        // Opposite direction - penalty
-        if (team === 'right') {
-          return safeCurrentScore - 1;
-        } else {
-          return safeCurrentScore + 1;
-        }
-      });
-    } catch (error) {
-      console.error("Failed to update score:", error);
+    if (newHearts <= 0) {
+      // Out of hearts penalty
+      setTimeout(() => {
+        setIsLocked(false);
+        setHearts(3);
+      }, 2500);
+    } else {
+      // Normal miss penalty
+      setTimeout(() => {
+        setIsLocked(false);
+      }, 1000);
     }
-  }, [team]);
+  }, [team, isLocked, hearts]);
 
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!team) return;
+      if (!team || isLocked) return;
       
       const pressedKey = e.key.toUpperCase();
       
@@ -90,9 +98,7 @@ export default function TugOfWar() {
         
         if (pressedKey === currentKey) {
           handlePull();
-          setWrongKey(false);
         } else {
-          // Wrong key - penalty
           handleWrongKey();
         }
       }
@@ -100,7 +106,7 @@ export default function TugOfWar() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [team, currentKey, handlePull, handleWrongKey]);
+  }, [team, currentKey, handlePull, handleWrongKey, isLocked]);
 
   const resetGame = async () => {
       try {
@@ -208,47 +214,80 @@ export default function TugOfWar() {
             </div>
           ) : (
             /* Game Controls */
-            <div className="text-center w-full">
-              <p className="text-lg text-slate-400 mb-8">
-                Playing as{' '}
-                <span className={`font-bold ${team === 'left' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {team === 'left' ? 'Team 1' : 'Team 2'}
-                </span>
+            <div className="text-center w-full relative">
+              <div className="flex justify-center items-center gap-2 mb-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`text-2xl transition-all duration-300 ${i < hearts ? 'text-rose-500 scale-100 opacity-100' : 'text-slate-800 scale-75 opacity-30'}`}
+                  >
+                    ❤️
+                  </div>
+                ))}
+              </div>
+
+              {isLocked && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+                  <div className="px-6 py-3 bg-red-600/90 text-white rounded-full font-black text-xl animate-pulse shadow-2xl backdrop-blur-sm">
+                    LOCKED {hearts === 0 ? '2.5s' : '1s'}
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-sm text-slate-500 mb-8 uppercase tracking-[0.3em]">
+                {team === 'left' ? 'Team 1' : 'Team 2'} pulling
               </p>
               
-              {/* Key Prompt */}
-              <div className="mb-8">
-                <p className="text-slate-500 text-sm mb-4 uppercase tracking-widest">Press the key</p>
-                <div className="flex justify-center gap-4">
-                  {KEYS.map((key) => {
-                    const isActive = key === currentKey;
-                    const isPressed = isActive && bump;
-                    const isWrong = isActive && wrongKey;
-                    
-                    return (
-                      <div
-                        key={key}
-                        className={`w-16 h-16 md:w-20 md:h-20 rounded-xl flex items-center justify-center text-2xl md:text-3xl font-bold transition-all duration-200
-                          ${isActive ? 'text-white scale-110' : 'bg-slate-800/50 text-slate-600 border border-slate-700/50'}
-                          ${isPressed ? 'scale-95' : ''}
-                        `}
-                        style={isActive ? { 
-                          backgroundColor: teamColorHex,
-                          boxShadow: `0 10px 40px ${teamColorHex}40`,
-                          transform: isPressed ? 'scale(0.95)' : isWrong ? 'translateX(-4px)' : 'scale(1.1)',
-                          animation: isWrong ? 'shake 0.2s ease-in-out' : 'none'
-                        } : {}}
-                      >
-                        {key}
-                      </div>
-                    );
-                  })}
+              {/* Key Sequence Display */}
+              <div className="flex items-center justify-center gap-4 md:gap-8 min-h-[160px]">
+                {/* Past Keys */}
+                <div className="flex gap-3 opacity-30 grayscale items-center">
+                  {history.map((key, i) => (
+                    <div key={`hist-${i}`} className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg md:text-xl font-bold text-slate-400 scale-90">
+                      {key}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Current Key */}
+                <div className="relative flex flex-col items-center mx-4">
+                  <div
+                    className={`w-24 h-24 md:w-32 md:h-32 rounded-3xl flex items-center justify-center text-4xl md:text-5xl font-black transition-all duration-100 ring-4 ring-offset-4 ring-offset-slate-950
+                      ${bump ? 'scale-90 opacity-80' : 'scale-100'}
+                      ${isLocked ? 'grayscale opacity-50 ring-slate-800' : (wrongKey ? 'ring-rose-500' : (team === 'left' ? 'ring-rose-500' : 'ring-emerald-500'))}
+                    `}
+                    style={{ 
+                      backgroundColor: isLocked ? '#1e293b' : teamColorHex,
+                      color: 'white',
+                      boxShadow: wrongKey ? '0 0 50px #f43f5e' : (isLocked ? 'none' : `0 20px 60px ${teamColorHex}60`),
+                      transform: wrongKey ? 'translateX(-8px)' : (isLocked ? 'scale(0.95)' : (bump ? 'scale(0.9)' : 'scale(1.1)')),
+                      animation: wrongKey ? 'shake 0.2s ease-in-out' : 'none'
+                    }}
+                  >
+                    {currentKey}
+                  </div>
+                  <div className={`mt-4 text-xs font-black uppercase tracking-[0.2em] ${wrongKey ? 'text-rose-500' : (isLocked ? 'text-slate-600' : 'text-slate-400')}`}>
+                    {wrongKey ? 'MISS!' : (isLocked ? 'WAIT' : 'NOW!')}
+                  </div>
+                </div>
+
+                {/* Incoming Keys */}
+                <div className="flex gap-4 items-center">
+                  {keyQueue.slice(1, 4).map((key, i) => (
+                    <div 
+                      key={`next-${i}`} 
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl md:text-3xl font-bold text-white shadow-lg transition-transform"
+                      style={{ opacity: 0.8 - (i * 0.2), transform: `scale(${0.95 - (i * 0.05)})` }}
+                    >
+                      {key}
+                    </div>
+                  ))}
                 </div>
               </div>
               
               <button 
                 onClick={() => setTeam(null)}
-                className="text-slate-500 hover:text-slate-300 text-sm transition-colors duration-300"
+                className="mt-12 text-slate-600 hover:text-slate-400 text-xs transition-colors duration-300 uppercase tracking-widest"
               >
                 Leave Team
               </button>
